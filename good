@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+
+<style>
+body{
+  margin:0;
+  background:radial-gradient(circle at top,#120000,#050505 70%);
+  font-family:Arial;
+  color:white;
+}
+
+/* Top bar: username & color picker */
+#top{
+  background:#0a0a0a;
+  padding:10px;
+  display:flex;
+  gap:10px;
+  border-bottom:2px solid #ff3300;
+  box-shadow:0 0 12px #ff330055;
+  flex-wrap: wrap;
+}
+
+#name,#color{
+  padding:8px;
+  border:none;
+  border-radius:10px;
+  background:#111;
+  color:white;
+  outline:none;
+  box-shadow:0 0 10px #ff660055 inset;
+  min-width:120px;
+  margin-bottom:5px;
+}
+
+/* Chat messages */
+#chat{
+  height:75vh;
+  overflow-y:auto;
+  padding:12px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.msg{
+  max-width:75%;
+  padding:12px 15px;
+  border-radius:16px;
+  animation:pop .25s ease;
+  color:white;
+  box-shadow:0 0 15px #ff330066;
+}
+
+.me{
+  align-self:flex-end;
+  border:2px solid #ff6600;
+  box-shadow:0 0 18px #ff6600aa;
+}
+
+.them{
+  align-self:flex-start;
+  border:2px solid #ff2200;
+  box-shadow:0 0 14px #ff220088;
+}
+
+.msg b{
+  color:#ff9933;
+  text-shadow:0 0 8px #ff5500;
+}
+
+/* Bottom input bar */
+#bar{
+  position:fixed;
+  bottom:0;
+  width:100%;
+  display:flex;
+  background:#080808;
+  padding:12px;
+  border-top:2px solid #ff3300;
+  box-shadow:0 -4px 12px #ff330066;
+  flex-wrap: wrap;
+}
+
+#input{
+  flex:1;
+  padding:12px;
+  border:none;
+  border-radius:20px;
+  font-size:16px;
+  background:#111;
+  color:white;
+  outline:none;
+  box-shadow:0 0 12px #ff660055 inset;
+  min-width:120px;
+  margin-bottom:5px;
+}
+
+#send{
+  margin-left:10px;
+  padding:12px 20px;
+  border:none;
+  border-radius:50%;
+  background:linear-gradient(45deg,#ff2200,#ff9900);
+  font-size:18px;
+  color:black;
+  cursor:pointer;
+  box-shadow:0 0 15px #ff5500aa;
+  transition:.2s;
+  flex-shrink:0;
+}
+
+#send:hover{
+  transform:scale(1.1);
+  box-shadow:0 0 25px #ff9900;
+}
+
+@keyframes pop{
+  from{transform:scale(.8);opacity:0;}
+  to{transform:scale(1);opacity:1;}
+}
+</style>
+</head>
+
+<body>
+
+<!-- Top bar -->
+<div id="top">
+  <input id="name" placeholder="Username">
+  <input id="color" type="color">
+</div>
+
+<!-- Chat display -->
+<div id="chat"></div>
+
+<!-- Bottom input bar -->
+<div id="bar">
+  <input id="input" placeholder="Type here...">
+  <button id="send">➤</button>
+</div>
+
+<!-- Firebase scripts -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyB71FIZk8b-Vl-27AdqM2Xl3u0f6Tk6wv0",
+  authDomain: "awesome-chat-boi.firebaseapp.com",
+  databaseURL: "https://awesome-chat-boi-default-rtdb.firebaseio.com",
+  projectId: "awesome-chat-boi",
+  storageBucket: "awesome-chat-boi.firebasestorage.app",
+  messagingSenderId: "40563703789",
+  appId: "1:40563703789:web:0d20ed1ee45aeba775f1e4"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const chatRef = db.ref("chat");
+
+// Unique ID for this device
+const uid = localStorage.getItem("uid") || Math.random().toString(36).substr(2);
+localStorage.setItem("uid", uid);
+
+// Load saved username and color
+name.value = localStorage.getItem("name") || "";
+color.value = localStorage.getItem("color") || "#ff6600";
+
+// Save changes locally
+name.onchange = () => localStorage.setItem("name", name.value);
+color.onchange = () => localStorage.setItem("color", color.value);
+
+// 🔹 Send button
+send.onclick = () => {
+  if(!input.value.trim() || !name.value){
+    alert("Enter a username first!");
+    return;
+  }
+  chatRef.push({
+    uid: uid,
+    name: name.value,
+    color: color.value,
+    text: input.value
+  });
+  input.value = "";
+};
+
+// 🔹 Enter key also sends
+input.addEventListener("keydown", e => {
+  if(e.key === "Enter") send.onclick();
+});
+
+// 🔹 Listen for new messages
+chatRef.limitToLast(100).on("child_added", s => {
+  const m = s.val();
+  const d = document.createElement("div");
+  d.className = "msg " + (m.uid===uid?"me":"them");
+  d.style.background = m.color;
+  d.innerHTML = "<b>"+m.name+"</b><br>"+m.text;
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
+});
+// 🔹 Built-in test message to confirm Firebase connection
+window.onload = () => {
+  chatRef.push({
+    uid:'test_connection',
+    name:'TestBot',
+    color:'#ff3300',
+    text:'🔥 Test message: Firebase connection working!'
+  });
+};
+</script>
+
+</body>
+</html>
